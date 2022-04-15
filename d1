@@ -1,0 +1,111 @@
+# Zia - April 13th, 2022
+
+setwd("singlecell")
+library(Seurat)
+library(dplyr)
+library(Matrix)
+library(ggpubr)
+------------------------------
+  ?plot
+ ?VlnPlot
+data("pbmc_small")
+rm(pbmc_small)
+VlnPlot(s1f, features =c('nFeature_RNA','nCount_RNA','percent.Mt'), pt.size =0)
+------------------------------
+
+Read10X("../singlecell/raw_feature_bc_matrix") -> data
+s1f <- CreateSeuratObject(
+  counts = data,
+  project = 'hippo',
+  min.cells =3,
+  min.features=200
+)
+
+library(tidyverse)
+library(Matrix)
+library(cowplot)
+theme_set(theme_cowplot())
+
+s1f <- PercentageFeatureSet(s1f, pattern = "^Mt-", col.name = "percent.Mt")
+VlnPlot(s1f, features =c('nFeature_RNA','nCount_RNA','percent.Mt'), pt.size =0.1)
+-----------------------------------------------------------------------------
+FeatureScatter(s1f, feature1 = "nCount_RNA", feature2 = "percent.mt")
+FeatureScatter(s1f, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+VlnPlot(s1f, features = c("nFeature_RNA","nCount_RNA","percent.mt"),ncol = 3,pt.size = 0.1) & theme(plot.title = element_text(size=10))
+after <- VlnPlot(s1f, features =c('nFeature_RNA','nCount_RNA','percent.mt'))
+ggarrange(before,after, ncol = 2, nrow = 1)
+---------------------------------------------------------------------
+
+s1f <- subset(s1f, subset = nFeature_RNA > 100 & nCount_RNA > 2000 & percent.Mt < 5)
+VlnPlot(s1f, features = c("nFeature_RNA","nCount_RNA","percent.Mt"),ncol = 3)
+
+
+s1f <- NormalizeData(s1f, normalization.method = "LogNormalize", scale.factor = 1e4)
+
+----------------------------------------------------------
+Performing log-normalization
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+#Identification of Highly Variable Features
+> s1f <- FindVariableFeatures(s1f, selection.method = "vst", nfeatures = 2000)
+Calculating gene variances
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+Calculating feature variances of standardized and clipped values
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+Warning messages:
+1: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  at  -0.91461
+2: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  radius  0.00013262
+3: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  all data on boundary of neighborhood. make span bigger
+4: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  pseudoinverse used at -0.91461
+5: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  neighborhood radius 0.011516
+6: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  reciprocal condition number  1
+7: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  zero-width neighborhood. make span bigger
+8: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
+  There are other near singularities as well. 0.031008
+----------------------------------------------------------
+# Identify the 10 most highly variable genes
+#https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+top10 <- head(VariableFeatures(s1f), 10)
+
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(s1f)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE, xnudge = 0,ynudge = 0)
+plot1
+plot2
+CombinePlots(plots = list(plot1, plot2))
+
+#scaling the data
+all.genes <- rownames(s1f)
+(warning()
+s1f <- ScaleData(s1f, features = all.genes)
+s1f <- RunPCA(s1f, features = VariableFeatures(object = s1f))
+s1f <- svd(s1f, features = VariableFeatures(object = s1f))
+s1f = Seurat::RunPCA(s1f, features=Seurat::VariableFeatures(object=s1f), verbose=FALSE, npcs=7)
+print(s1f[["pca"]], dims = 1:7, nfeatures = 7)
+VizDimLoadings(s1f, dims = 1:2, reduction = "pca")
+DimPlot(s1f, reduction = "pca")
+DimHeatmap(s1f, dims = 1, cells = 500, balanced = TRUE)
+DimHeatmap(s1f, dims = 1:7, cells = 500, balanced = TRUE)
+s1f <- JackStraw(s1f, num.replicate = 100)
+s1f <- ScoreJackStraw(s1f, dims = 1:20)
+JackStrawPlot(s1f, dims = 1:7)
+ElbowPlot(s1f)
+s1f <- FindNeighbors(s1f, dims = 1:7)
+s1f <- FindClusters(s1f, resolution = 0.6)
+reticulate::py_install(packages ='umap-learn')
+s1f <- RunUMAP(s1f, dims = 1:7)
+DimPlot(s1f, reduction = "umap")
+
