@@ -86,7 +86,28 @@ plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE, xnudge = 0,ynud
 plot1
 plot2
 CombinePlots(plots = list(plot1, plot2))
-
+--------------------------------------
+> plot1
+Warning messages:
+1: Transformation introduced infinite values in continuous x-axis 
+2: Removed 13141 rows containing missing values (geom_point). 
+> plot2
+Warning messages:
+1: Transformation introduced infinite values in continuous x-axis 
+2: Removed 13141 rows containing missing values (geom_point). 
+3: ggrepel: 7 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
+> CombinePlots(plots = list(plot1, plot2))
+Error in grid.Call(C_convert, x, as.integer(whatfrom), as.integer(whatto),  : 
+  Viewport has zero dimension(s)
+In addition: Warning messages:
+1: ggrepel: 7 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
+2: ggrepel: 7 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
+3: CombinePlots is being deprecated. Plots should now be combined using the patchwork system. 
+4: Transformation introduced infinite values in continuous x-axis 
+5: Removed 13141 rows containing missing values (geom_point). 
+6: Transformation introduced infinite values in continuous x-axis 
+7: Removed 13141 rows containing missing values (geom_point). 
+--------------------------------------
 #scaling the data
 all.genes <- rownames(s1f)
 (warning()
