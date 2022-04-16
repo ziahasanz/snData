@@ -112,6 +112,15 @@ In addition: Warning messages:
 all.genes <- rownames(s1f)
 (warning()
 s1f <- ScaleData(s1f, features = all.genes)
+-------------------------------------------------
+> all.genes <- rownames(s1f)
+> s1f <- ScaleData(s1f, features = all.genes)
+Centering and scaling data matrix
+  |==============================================================================| 100%
+> s1f <- RunPCA(s1f, features = VariableFeatures(object = s1f))
+Error in irlba(A = t(x = object), nv = npcs, ...) : 
+  max(nu, nv) must be strictly less than min(nrow(A), ncol(A))
+-------------------------------------------------
 s1f <- RunPCA(s1f, features = VariableFeatures(object = s1f))
 s1f <- svd(s1f, features = VariableFeatures(object = s1f))
 s1f = Seurat::RunPCA(s1f, features=Seurat::VariableFeatures(object=s1f), verbose=FALSE, npcs=7)
