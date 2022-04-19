@@ -5,20 +5,13 @@ library(Seurat)
 library(dplyr)
 library(Matrix)
 library(ggpubr)
-------------------------------
-  ?plot
- ?VlnPlot
-data("pbmc_small")
-rm(pbmc_small)
-VlnPlot(s1f, features =c('nFeature_RNA','nCount_RNA','percent.Mt'), pt.size =0)
-------------------------------
 
-Read10X("../singlecell/raw_feature_bc_matrix") -> data
+data <- Read10X("../singlecell/raw_feature_bc_matrix")
 s1f <- CreateSeuratObject(
   counts = data,
   project = 'hippo',
-  min.cells =3,
-  min.features=200
+  min.cells =1,
+  min.features=20
 )
 
 library(tidyverse)
@@ -28,114 +21,57 @@ theme_set(theme_cowplot())
 
 s1f <- PercentageFeatureSet(s1f, pattern = "^Mt-", col.name = "percent.Mt")
 VlnPlot(s1f, features =c('nFeature_RNA','nCount_RNA','percent.Mt'), pt.size =0.1)
------------------------------------------------------------------------------
-FeatureScatter(s1f, feature1 = "nCount_RNA", feature2 = "percent.mt")
-FeatureScatter(s1f, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-VlnPlot(s1f, features = c("nFeature_RNA","nCount_RNA","percent.mt"),ncol = 3,pt.size = 0.1) & theme(plot.title = element_text(size=10))
-after <- VlnPlot(s1f, features =c('nFeature_RNA','nCount_RNA','percent.mt'))
-ggarrange(before,after, ncol = 2, nrow = 1)
----------------------------------------------------------------------
 
-s1f <- subset(s1f, subset = nFeature_RNA > 100 & nCount_RNA > 2000 & percent.Mt < 5)
+
+s1f.sub <- subset(s1f, subset = nFeature_RNA > 10 & nCount_RNA > 100 & percent.Mt < 5)
 VlnPlot(s1f, features = c("nFeature_RNA","nCount_RNA","percent.Mt"),ncol = 3)
 
 
-s1f <- NormalizeData(s1f, normalization.method = "LogNormalize", scale.factor = 1e4)
-
-----------------------------------------------------------
-Performing log-normalization
-0%   10   20   30   40   50   60   70   80   90   100%
-[----|----|----|----|----|----|----|----|----|----|
-**************************************************|
+s1f.sub.norm <- NormalizeData(s1f.sub, normalization.method = "LogNormalize", scale.factor = 10000,verbose = FALSE)
 #Identification of Highly Variable Features
-> s1f <- FindVariableFeatures(s1f, selection.method = "vst", nfeatures = 2000)
-Calculating gene variances
-0%   10   20   30   40   50   60   70   80   90   100%
-[----|----|----|----|----|----|----|----|----|----|
-**************************************************|
-Calculating feature variances of standardized and clipped values
-0%   10   20   30   40   50   60   70   80   90   100%
-[----|----|----|----|----|----|----|----|----|----|
-**************************************************|
-Warning messages:
-1: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  at  -0.91461
-2: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  radius  0.00013262
-3: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  all data on boundary of neighborhood. make span bigger
-4: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  pseudoinverse used at -0.91461
-5: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  neighborhood radius 0.011516
-6: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  reciprocal condition number  1
-7: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  zero-width neighborhood. make span bigger
-8: In simpleLoess(y, x, w, span, degree = degree, parametric = parametric,  :
-  There are other near singularities as well. 0.031008
-----------------------------------------------------------
+s1f.sub.norm.vf <- FindVariableFeatures(s1f.sub.norm, selection.method = "vst", nfeatures = 2000,verbose = FALSE)
+
 # Identify the 10 most highly variable genes
-#https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
-top10 <- head(VariableFeatures(s1f), 10)
+top10 <- head(VariableFeatures(s1f.sub.norm.vf), 10)
 
 # plot variable features with and without labels
-plot1 <- VariableFeaturePlot(s1f)
+plot1 <- VariableFeaturePlot(s1f.sub.norm.vf) + theme(legend.position="top")
 plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
 plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE, xnudge = 0,ynudge = 0)
-plot1
-plot2
-CombinePlots(plots = list(plot1, plot2))
---------------------------------------
-> plot1
-Warning messages:
-1: Transformation introduced infinite values in continuous x-axis 
-2: Removed 13141 rows containing missing values (geom_point). 
-> plot2
-Warning messages:
-1: Transformation introduced infinite values in continuous x-axis 
-2: Removed 13141 rows containing missing values (geom_point). 
-3: ggrepel: 7 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
-> CombinePlots(plots = list(plot1, plot2))
-Error in grid.Call(C_convert, x, as.integer(whatfrom), as.integer(whatto),  : 
-  Viewport has zero dimension(s)
-In addition: Warning messages:
-1: ggrepel: 7 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
-2: ggrepel: 7 unlabeled data points (too many overlaps). Consider increasing max.overlaps 
-3: CombinePlots is being deprecated. Plots should now be combined using the patchwork system. 
-4: Transformation introduced infinite values in continuous x-axis 
-5: Removed 13141 rows containing missing values (geom_point). 
-6: Transformation introduced infinite values in continuous x-axis 
-7: Removed 13141 rows containing missing values (geom_point). 
---------------------------------------
+plot1 + plot2
+
 #scaling the data
-all.genes <- rownames(s1f)
-(warning()
-s1f <- ScaleData(s1f, features = all.genes)
--------------------------------------------------
-> all.genes <- rownames(s1f)
-> s1f <- ScaleData(s1f, features = all.genes)
-Centering and scaling data matrix
-  |==============================================================================| 100%
-> s1f <- RunPCA(s1f, features = VariableFeatures(object = s1f))
-Error in irlba(A = t(x = object), nv = npcs, ...) : 
-  max(nu, nv) must be strictly less than min(nrow(A), ncol(A))
--------------------------------------------------
-s1f <- RunPCA(s1f, features = VariableFeatures(object = s1f))
-s1f <- svd(s1f, features = VariableFeatures(object = s1f))
-s1f = Seurat::RunPCA(s1f, features=Seurat::VariableFeatures(object=s1f), verbose=FALSE, npcs=7)
-print(s1f[["pca"]], dims = 1:7, nfeatures = 7)
-VizDimLoadings(s1f, dims = 1:2, reduction = "pca")
-DimPlot(s1f, reduction = "pca")
-DimHeatmap(s1f, dims = 1, cells = 500, balanced = TRUE)
-DimHeatmap(s1f, dims = 1:7, cells = 500, balanced = TRUE)
-s1f <- JackStraw(s1f, num.replicate = 100)
-s1f <- ScoreJackStraw(s1f, dims = 1:20)
-JackStrawPlot(s1f, dims = 1:7)
-ElbowPlot(s1f)
-s1f <- FindNeighbors(s1f, dims = 1:7)
-s1f <- FindClusters(s1f, resolution = 0.6)
-reticulate::py_install(packages ='umap-learn')
-s1f <- RunUMAP(s1f, dims = 1:7)
+all.genes <- rownames(s1f.sub.norm.vf)
+s1f.sub.norm.vf.scale<- ScaleData(s1f.sub.norm.vf, features = all.genes, verbose = FALSE)
+s1f.sub.norm.vf <- FindVariableFeatures(object = s1f.sub.norm.vf)
+
+#if shows error: cannot allocate vector of size 4.5 Gb. Run the below command 
+s1f.sub.norm.vf.scale <- ScaleData(s1f.sub.norm.vf)
+s1f.sub.norm.vf.scale.PCA <- RunPCA(s1f.sub.norm.vf.scale)
+
+# Examine and visualize PCA results a few different ways
+print(s1f.sub.norm.vf.scale.PCA[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(s1f.sub.norm.vf.scale.PCA, dims = 1:2, reduction = "pca")
+DimPlot(s1f.sub.norm.vf.scale.PCA, reduction = "pca")
+DimHeatmap(s1f.sub.norm.vf.scale.PCA, dims = 1, cells = 500, balanced = TRUE)
+DimHeatmap(s1f.sub.norm.vf.scale.PCA, dims = 1:15, cells = 500, balanced = TRUE)
+
+
+#Determine the ‘dimensionality’ of the dataset
+#if you use below two commands for the‘dimensionality’, it will take longtime to analyze the data (for instance: 4h for my data). I skip this step and use only the Elbow plot.
+s1f.sub.norm.vf.scale.PCA.Dimenstion <- JackStraw(s1f.sub.norm.vf.scale.PCA, num.replicate = 100)
+s1f.sub.norm.vf.scale.PCA.Dimenstion <- ScoreJackStraw(s1f.sub.norm.vf.scale.PCA.Dimenstion, dims = 1:7)
+JackStrawPlot(s1f.sub.norm.vf.scale.PCA, dims = 1:15)
+
+ElbowPlot(s1f.sub.norm.vf.scale.PCA)
+
+#Cluster the cells
+s1f.sub.norm.vf.scale.PCA.cluster <- FindNeighbors(s1f.sub.norm.vf.scale.PCA, dims = 1:15)
+s1f.sub.norm.vf.scale.PCA.cluster <- FindClusters(s1f.sub.norm.vf.scale.PCA.cluster, resolution = 0.5)
+# Look at cluster IDs of the first 5 cells
+head(Idents(s1f.sub.norm.vf.scale.PCA.cluster), 5)
+s1f.sub.norm.vf.scale.PCA.cluster.umap <- RunUMAP(s1f.sub.norm.vf.scale.PCA.cluster, dims = 1:15)
+DimPlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, reduction = "umap")
+
 DimPlot(s1f, reduction = "umap")
 
