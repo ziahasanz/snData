@@ -87,42 +87,25 @@ DimPlot(s1f.sub.norm.vf.scale.PCA.cluster.tSNE, reduction = "tsne")
 DimPlot(s1f.sub.norm.vf.scale.PCA.cluster.tSNE, reduction = "tsne", label = TRUE)
 
 #Finding differentially expressed features (cluster biomarkers)
-#find all markers of cluster 0 (for individual cluster's marker)
+#find all markers of cAluster 0 (for individual cluster's marker)
 cluster0.markers <- FindMarkers(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, ident.1 = 1, min.pct = 0.25)
 head(x = cluster0.markers, n = 10)
-
-s1f.sub.norm.vf.scale.PCA.cluster.umap %>% group_by(cluster) %>% top_n(n = 9, wt = avg_logFC)
-# find markers for every cluster compared to all remaining cells, report only the positive ones
-s1f.sub.norm.vf.scale.PCA.cluster.umap.markers <- FindAllMarkers(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
-
-
 cluster0.markers <- FindMarkers(s1f.sub.norm.vf.scale.PCA.cluster.umap, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
 VlnPlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Zbtb20", "Map1b", "Erc2", "Olfm17", "Epha7", "Ppfia2", "Ppp3ca", "Rfx3",  "Adcy1"))
 
 
-#Crude cell-type annotation
-# set up list of canonical cell type markers
-canonical_markers <- list(
-  'Astrocyte' = c('GFAP', 'AQP4', 'SLC1A2', 'SLC1A3', 'GLUL', 'S100B'),
-  'Pan-neuronal' = c('RBFOX3', 'SNAP25', 'SYT1'),
-  'Excitatory Neuron' = c('NEUROD6', 'SLC17A7', 'SATB2'),
-  'Inhibitory Neuron' = c('GAD1', 'GAD2'),
-  'Microglia' = c('CSF1R', 'P2RY12', 'CX3CR1', 'SALL1'),
-  'Oligodendrocyte' = c('MOBP', 'MBP', 'MOG', 'FA2H', 'UGT8'),
-  'Olig. Progenitor' = c('PDGFRA', 'CSPG4', 'MEGF11', 'PCDH15' , 'CSPG4'))
 
-library(viridis)
-png('basic_marker_heatmap.png', width=10, height=10, units='in', res=200)
-DoHeatmap(s1f.sub.norm.vf.scale.PCA.cluster.umap, group.by ="seurat_clusters", features=as.character(unlist(canonical_markers))) # + scale_fill_gradientn(colors=viridis(256))
-dev.off()
+# find markers for every cluster compared to all remaining cells, report only the positive ones
+s1f.sub.norm.vf.scale.PCA.cluster.umap.markers <- FindAllMarkers(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+s1f.sub.norm.vf.scale.PCA.cluster.umap.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_log2FC)
+
+#this code works
+FeaturePlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Zbtb20", "Map1b", "Erc2", "Olfm17", "Epha7", "Ppfia2", "Ppp3ca", "Rfx3",  "Adcy1"))
+FeaturePlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("GAD1"))
 
 
-# plot heatmap:
-plot_list <- FeaturePlot(
-  s1f.sub.norm.vf.scale.PCA.cluster,
-  features=unlist(canonical_markers),
-  combine=FALSE, cols=viridis(256),
-  max.cutoff='q98'
-)
+
+
 
 
