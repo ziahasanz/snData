@@ -10,8 +10,8 @@ data1 <- Read10X("../single_integration/raw_feature_bc_matrix_s1f_cE14")
 s1f.ce14 <- CreateSeuratObject(counts = data1,project = 'hippo', min.cells =1, min.features=20)
 
 #load the dataset1
-data2 <- Read10X("../single_integration/raw_feature_bc_matrix_s1f_cGFP")
+data2 <- Read10X("../single_integration/raw_feature_bc_matrix_s2f_cGFP")
 s1f.cgfp <- CreateSeuratObject(counts = data2,project = 'hippo', min.cells =1, min.features=20)
 
 #merged the surat object
-merged.ce14gfp <- merge(x = s1f.ce14, y = s1f.cgfp))  
+merged.ce14gfp <- merge(x = s1f.ce14, y = s1f.cgfp, add.cell.ids = c("cE14", "cGFP"))  
