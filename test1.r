@@ -1,4 +1,4 @@
-# Zia - April 13th, 2022
+# Zia - April 13th july, 2022
 
 setwd("singlecell")
 library(Seurat)
@@ -53,8 +53,8 @@ DimHeatmap(s1f.sub.norm.vf.scale.PCA, dims = 1, cells = 500, balanced = TRUE)
 DimHeatmap(s1f.sub.norm.vf.scale.PCA, dims = 1:15, cells = 500, balanced = TRUE)
 
 
-#Determine the ‘dimensionality’ of the dataset
-#if you use below two commands for the‘dimensionality’, it will take longtime to analyze the data (for instance: 4h for my data). I skip this step and use only the Elbow plot.
+#Determine the âdimensionalityâ of the dataset
+#if you use below two commands for theâdimensionalityâ, it will take longtime to analyze the data (for instance: 4h for my data). I skip this step and use only the Elbow plot.
 s1f.sub.norm.vf.scale.PCA.Dimenstion <- JackStraw(s1f.sub.norm.vf.scale.PCA, num.replicate = 100)
 s1f.sub.norm.vf.scale.PCA.Dimenstion <- ScoreJackStraw(s1f.sub.norm.vf.scale.PCA.Dimenstion, dims = 1:7)
 JackStrawPlot(s1f.sub.norm.vf.scale.PCA, dims = 1:15)
@@ -87,25 +87,90 @@ DimPlot(s1f.sub.norm.vf.scale.PCA.cluster.tSNE, reduction = "tsne")
 DimPlot(s1f.sub.norm.vf.scale.PCA.cluster.tSNE, reduction = "tsne", label = TRUE)
 
 #Finding differentially expressed features (cluster biomarkers)
-#find all markers of cAluster 0 (for individual cluster's marker)
+#find all markers of cluster 0 (for individual cluster's marker)
 cluster0.markers <- FindMarkers(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, ident.1 = 1, min.pct = 0.25)
 head(x = cluster0.markers, n = 10)
 cluster0.markers <- FindMarkers(s1f.sub.norm.vf.scale.PCA.cluster.umap, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
 VlnPlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Zbtb20", "Map1b", "Erc2", "Olfm17", "Epha7", "Ppfia2", "Ppp3ca", "Rfx3",  "Adcy1"))
-
-
+#this works
+VlnPlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Gad1", "Gad2", "mog", "Slc17a7", "Pdgfra", "P2ry12", "Snap25", "Neurod6", "Megf11","PcdH15","Pdgfra", "Cspg4", "Slc1a2", "Slc1a3", "Glul", "S100b"))
+VlnPlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Rbfox3", "Slc17a7", "Neurod6", "Snap25", "Gad1", "Gad2", "Megf11", "PcdH15","Pdgfra", "Cspg4", "P2ry12" , "Cx3cr1" , "Sall1" , "Csf1r", "Slc1a2", "Slc1a3", "Glul", "S100b", "Mog", "Mbp", "Fa2h", "Ugt8"))
 
 # find markers for every cluster compared to all remaining cells, report only the positive ones
 s1f.sub.norm.vf.scale.PCA.cluster.umap.markers <- FindAllMarkers(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 
-s1f.sub.norm.vf.scale.PCA.cluster.umap.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_log2FC)
+top10 <- s1f.sub.norm.vf.scale.PCA.cluster.umap.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_log2FC)
+
+png(filename = "cluster_umap_heatmap.png", width = 1000, height = 1600, pointsize = 12, family = "sans", bg = "white")
+DoHeatmap(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = top10$gene) + NoLegend() + scale_fill_viridis(option = "B") + theme(text = element_text(size = 20))
+dev.off()
+
+## rank and save the marker genes
+
+s1f.sub.norm.vf.scale.PCA.cluster.umap.markers$rank <-(s1f.sub.norm.vf.scale.PCA.cluster.umap.markers$avg_logFC)*(-log(s1f.sub.norm.vf.scale.PCA.cluster.umap.markers$p_val_adj)) ## rank for GSEA analysis later
+write.csv(s1f.sub.norm.vf.scale.PCA.cluster.umap.markers,"s1f_clusters_DEG_genes.csv")
+
 
 #this code works
 FeaturePlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Zbtb20", "Map1b", "Erc2", "Olfm17", "Epha7", "Ppfia2", "Ppp3ca", "Rfx3",  "Adcy1"))
-FeaturePlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("GAD1"))
+FeaturePlot(s1f.sub.norm.vf.scale.PCA.cluster.umap, features = c("Mbp"))
+DotPlot(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, features =  c("Mbp","Gria4","Ndst4","Rnf182"),cols = c("blue", "red")) + RotatedAxis()
+VlnPlot(object = s1f.sub.norm.vf.scale.PCA.cluster.umap, features =  c("Mbp","Gria4","Ndst4","Rnf182"))
+
+#sort by topl10 and dotplot it
+top10 <- s1f.sub.norm.vf.scale.PCA.cluster.umap %>%
+  group_by(cluster) %>%
+  slice_max(avg_log2FC, n = 10) %>%
+  ungroup()
+DotPlot(
+  s1f.sub.norm.vf.scale.PCA.cluster.umap,
+  assay = NULL,
+  unique(top10$gene),
+  cols = c("blue", "red"),
+  col.min = 2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  group.by = NULL,
+  split.by= NULL,
+  scale.by = "radius",
+  scale.min = NA,
+  scale.max = NA
+) + theme (axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
+
+#saveRDS(pbmc, file = "pbmc3k_final.rds")
+#tools to help annotate
+#http://bio-bigdata.hrbmu.edu.cn/CellMarker/search.jsp?cellMarkerSpeciesType-Human&cellMarker-pf4
+#https://azimuth.hubmap.consortium.org/
+
+cluster6 <- FindMarkers(s1f.sub.norm.vf.scale.PCA.cluster.umap, ident.1 = 6, ident.2 = c(4, 2,0), min.pct = 0.25)
+cluster6$gene <-rownames (cluster6)
+
+#visualize degs
+EnhancedVolcano(cluster6,
+                 lab = rownames(cluster6),
+                 x = 'avg_log2FC',
+                 y = 'p_val_adj',
+                 title= 'Cluster 6 vs Cluster 4,2,0',
+                 pCutoff = 10e-32,
+                 FCcutoff = 1,
+                 pointSize = 3.0,
+                 labSize = 6.0)
 
 
+# set up list of canonical cell type markers
+canonical_markers <- list(
+  'Astrocyte' = c('GFAP', 'AQP4', 'SLC1A2'),
+  'Pan-neuronal' = c('SNAP25', 'SYT1'),
+  'Excitatory Neuron' = c('SLC17A7', 'SATB2'),
+  'Inhibitory Neuron' = c('GAD1', 'GAD2'),
+  'Microglia' = c('CSF1R', 'CD74', 'P2RY12'),
+  'Oligodendrocyte' = c('MOBP', 'MBP', 'MOG'),
+  'Olig. Progenitor' = c('PDGFRA', 'CSPG4')
+)
 
-
-
-
+# plot heatmap:
+library(viridis)
+png('basic_canonical_marker_heatmap.png', width=10, height=10, units='in', res=200)
+DoHeatmap(s1f.sub.norm.vf.scale.PCA.cluster.umap, group.by ="seurat_clusters", features=as.character(unlist(canonical_markers))) + scale_fill_gradientn(colors=viridis(256))
+dev.off()
