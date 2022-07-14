@@ -100,3 +100,8 @@ ht0 <- Heatmap(heatmapdf$avg_log2FC,
                width = unit(1, "cm"))
 
 ht0
+
+#Identify conserved cell type markers
+FeaturePlot(object = merged.ce14gfp, features = c("Slc17a7", "Neurod6","Snap25","Gad1","Gad2","Mobp","Mbp","Mog"
+), min.cutoff = "q9", pt.size = 0.5)
+VlnPlot(object = merged.ce14gfp, features =  c("Slc17a7", "Neurod6","Snap25","Gad1","Gad2","Mobp","Mbp","Mog"))
