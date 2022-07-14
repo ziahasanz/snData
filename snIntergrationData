@@ -11,7 +11,92 @@ s1f.ce14 <- CreateSeuratObject(counts = data1,project = 'hippo', min.cells =1, m
 
 #load the dataset1
 data2 <- Read10X("../single_integration/raw_feature_bc_matrix_s2f_cGFP")
-s1f.cgfp <- CreateSeuratObject(counts = data2,project = 'hippo', min.cells =1, min.features=20)
+s2f.cgfp <- CreateSeuratObject(counts = data2,project = 'hippo', min.cells =1, min.features=20)
 
 #merged the surat object
-merged.ce14gfp <- merge(x = s1f.ce14, y = s1f.cgfp, add.cell.ids = c("cE14", "cGFP"))  
+merged.ce14gfp <- merge(x = s1f.ce14, y = s2f.cgfp, add.cell.ids = c("cE14", "cGFP"))  
+
+#adding meta data
+library(stringr)
+sample <- names(merged.ce14gfp@active.ident)
+sample_detect <- ifelse(str_detect(sample,"cE14"),"cE14","cGFP")
+
+merged.ce14gfp@meta.data$sample <- sample_detect
+
+Idents(object = merged.ce14gfp) <- "sample"
+
+#Normalized Data and Intergrate the two dataset
+ce14gfp.list <-  SplitObject(merged.ce14gfp, split.by = "sample")
+# perform standard preprocessing on each object
+for (i in 1:length(ce14gfp.list)) {
+  ce14gfp.list[[i]] <- NormalizeData(ce14gfp.list[[i]], verbose = FALSE)
+  ce14gfp.list[[i]] <- subset(ce14gfp.list[[i]], downsample = 2000)
+  ce14gfp.list[[i]] <- FindVariableFeatures(
+    ce14gfp.list[[i]], selection.method = "vst",
+    nfeatures = 2000, verbose = FALSE
+  )
+}
+# select features that are repeatedly variable across datasets for integration run PCA on each
+# dataset using these features
+features <- SelectIntegrationFeatures(object.list = ce14gfp.list)
+ce14gfp.list <- lapply(X = ce14gfp.list, FUN = function(x) {
+  x <- ScaleData(x, features = features, verbose = FALSE)
+  x <- RunPCA(x, features = features, verbose = FALSE)
+})
+
+#Intergrate Data
+# find anchors
+anchors <- FindIntegrationAnchors(object.list = ce14gfp.list)
+# integrate data
+merged.ce14gfp <- IntegrateData(anchorset = anchors)
+
+#Data Cleaning and Dimensional reduction for visualization
+merged.ce14gfp <- ScaleData(merged.ce14gfp, verbose = FALSE)
+merged.ce14gfp <- FindVariableFeatures(merged.ce14gfp, 
+                                       selection.method = "vst",
+                                       nfeatures = 2000, 
+                                       verbose = FALSE)
+
+merged.ce14gfp <- RunPCA(merged.ce14gfp, npcs = 30, verbose = FALSE)
+merged.ce14gfp <- RunUMAP(merged.ce14gfp, reduction = "pca", dims = 1:30)
+merged.ce14gfp <- FindNeighbors(merged.ce14gfp, reduction = "pca", dims = 1:30)
+merged.ce14gfp <- FindClusters(merged.ce14gfp, resolution = 0.5)
+gc()
+# Visualization
+
+p1 <- DimPlot(merged.ce14gfp, reduction = "umap")
+p1
+
+Idents(object = merged.ce14gfp) <- "sample"
+p2 <- DimPlot(merged.ce14gfp, reduction = "umap")
+p2
+p1+p2
+
+# Find differentially expressed features between ....
+# search for positive markers
+Idents(object = merged.ce14gfp) <- "sample"
+
+sammple.markers <- FindMarkers(merged.ce14gfp, ident.1 = "cE14", ident.2 = "cGFP")
+# view results
+head(sammple.markers)
+
+# There shouldn't be any, but.........
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("ComplexHeatmap")
+library(ComplexHeatmap)
+
+heatmapdf <- sammple.markers[1:25,]
+row_ha = rowAnnotation("CE14" = anno_barplot(heatmapdf$pct.1),
+                       "cGFP"= anno_barplot(heatmapdf$pct.2),
+                       width = unit(10, "cm"))
+
+ht0 <- Heatmap(heatmapdf$avg_log2FC,
+               name = "Log2FC",
+               cluster_rows = TRUE, 
+               row_labels = rownames(heatmapdf), 
+               right_annotation = row_ha,
+               width = unit(1, "cm"))
+
+ht0
