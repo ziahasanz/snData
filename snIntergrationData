@@ -97,7 +97,6 @@ table(merged.ce14gfp.cellnos@meta.data$clusters.cellnos, merged.ce14gfp.cellnos@
 # Find differentially expressed features between ....
 # search for positive markers
 Idents(object = merged.ce14gfp) <- "sample"
-
 sammple.markers <- FindMarkers(merged.ce14gfp, ident.1 = "cE14", ident.2 = "cGFP")
 # view results
 head(sammple.markers)
@@ -120,8 +119,8 @@ ht0 <- Heatmap(heatmapdf$avg_log2FC,
 
 ht0
 
-# Find differentially expressed features between one group and  other group
-# search for positive markers
+#Find differentially expressed features between one group and  other group
+#search for positive markers
 Idents(object = merged.ce14gfp) <- "seurat_clusters"
 cluster0.de.markers <- FindMarkers(merged.ce14gfp, ident.1 = "0", ident.2 = NULL, only.pos = TRUE)
 head(cluster0.de.markers)
@@ -132,7 +131,7 @@ head(cluster1.de.markers)
 cluster01.de.markers <- FindMarkers(merged.ce14gfp, ident.1 = "0", ident.2 = "1", only.pos = TRUE)
 head(cluster01.de.markers)
 
-#Identify conserved cell type markers (two different samples)
+#Identify conserved cell type markers (when you have two different samples. EX: control and Experimental group)
 DefaultAssay(merged.ce14gfp) <- "RNA"
 
 cluster0.markers <- FindConservedMarkers(merged.ce14gfp, ident.1 = 0, grouping.var = "sample", verbose = FALSE)
@@ -191,9 +190,6 @@ head(cluster16.markers)
 cluster17.markers <- FindConservedMarkers(merged.ce14gfp, ident.1 = 17, grouping.var = "sample", verbose = FALSE)
 head(cluster17.markers)
 
-FeaturePlot(object = merged.ce14gfp, features = c("Srgap2","Tgfbr1"), min.cutoff = "q9", pt.size = 0.5) & scale_colour_gradientn(colours = rev(brewer.pal(n = 11, name = "Spectral")))
-VlnPlot(object = merged.ce14gfp, features =  c("Snap25","Megf11","Pdgfra","Slc1a3","Glul","Mog","Mbp"))
-
 
 #Cluster identifiaction using known markers
 
@@ -210,7 +206,7 @@ VlnPlot(object = merged.ce14gfp, features =  c("Slc17a7","Slc17a6","Grin1","Grin
 #Only for Neurons
 VlnPlot(object = merged.ce14gfp, features =  c("Camk2a","Kif5c"), pt.size = 0)
 
-#Mature neurons 15
+#Mature neurons 15?
 VlnPlot(object = merged.ce14gfp, features =  c("Rbfox3","Map2","Syp","Dlg4","Tubb3","Mapt","Ina","Gap43","Nrp1"), pt.size = 0)
 #Microglia 6
 VlnPlot(object = merged.ce14gfp, features =  c("P2ry12","Itgam","Cd40","Ptprc","Cd68","Aif1","Cx3cr1","Tmem119","Adgre1","C1qa","Nos2","Tnf","Isyna1","Ccl4","Adora3","Adrb2","Bhlhe41","Bin1","Klf2","Nav3","Rhob","Sall1","Siglec8","Slc1a3","Spry1","Tal1"), pt.size = 0)
@@ -267,11 +263,7 @@ merged.ce14gfp.renamed <- RenameIdents(merged.ce14gfp, "0" = "Glutamatergic1", "
 DimPlot(merged.ce14gfp.renamed, label = TRUE, label.size = 3)
 
 #viewing conserved cell type markers across conditions
-#GABA
 Idents(merged.ce14gfp.renamed) <- factor(Idents(merged.ce14gfp.renamed), levels = c("Glutamatergic1", "GABAergic1", "Oligodendrocytes1", "Glutamatergic2", "Oligodendrocytes2",  "Glutamatergic3",  "Microglia",  "Glutamatergic4",  "GABAergic2",  "GABAergic3","Glutamatergic5",  "Glutamatergic6",  "Astrocytes",  "Glutamatergic7",  "GABAergic4", "GABAergic5",   "Pericytes",  "Oligodendrocytes3"))
-markers.to.plot <- c("Slc6a1","Gabbr1","Gabbr2","Gad2","Gad1","Slc32a1")
-
-DotPlot(merged.ce14gfp.renamed, features = markers.to.plot, cols = c("blue", "red"), split.by = "sample") + RotatedAxis()
 
 #GABA
 markers.to.plot.gaba <- c("Slc6a1","Gabbr1","Gabbr2","Gad2","Gad1","Slc32a1")
@@ -279,7 +271,7 @@ DotPlot(merged.ce14gfp.renamed, features = markers.to.plot.gaba, cols = c("blue"
 
 
 #Glutamate
-markers.to.plot.glu <- c("Slc6a1","Gabbr1","Gabbr2","Gad2","Gad1","Slc32a1")
+markers.to.plot.glu <- c("Zbtb20","Tshz2","Dpp10","Hs6st3","Sgcz","Pdzrn3","Vwc2l","Satb2","Tox","Fhod3")
 DotPlot(merged.ce14gfp.renamed, features = markers.to.plot.glu, cols = c("blue", "red"), split.by = "sample") + RotatedAxis()
 
 #Astrocytes
@@ -298,7 +290,11 @@ DotPlot(merged.ce14gfp.renamed, features = markers.to.plot.oligo, cols = c("blue
 #OPC
 markers.to.plot.oligo <- c("Lhfpl3","Megf11","Pcdh15","Pdgfra","Cspg4","Rnf5")
 DotPlot(merged.ce14gfp.renamed, features = markers.to.plot.oligo, cols = c("blue", "red"), split.by = "sample") + RotatedAxis()
+VlnPlot(merged.ce14gfp.renamed, features = markers.to.plot.oligo, cols = c("blue", "red"), split.by = "sample", pt.size = 0)
 
 #Pericytes
 markers.to.plot.peri<- c("Utrn", "Ssh2","Dlc1","Abcc9","Atp13a5","Ebf1","Egflam","Rgs5","Mecom")
 DotPlot(merged.ce14gfp.renamed, features = markers.to.plot.peri, cols = c("blue", "red"), split.by = "sample") + RotatedAxis()
+
+#Identify differential expressed genes across conditions
+
